@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 
 import { useRouter } from "next/navigation";
@@ -18,15 +19,15 @@ import { CreditCard, LogOut, Settings, UserIcon } from "lucide-react";
 
 type TUserProps = {
 	user: any;
-	onSettings: () => void;
-	onProfile: () => void;
-	onBilling: () => void;
-	showBadge: boolean;
-	badgeText: string;
-	badgeVariant: "default";
-	size: "md" | "lg" | "sm";
-	showEmail: boolean;
-	showMemberSince: boolean;
+	onSettings?: () => void;
+	onProfile?: () => void;
+	onBilling?: () => void;
+	showBadge?: boolean;
+	badgeText?: string;
+	badgeVariant?: "default";
+	size?: "md" | "lg" | "sm";
+	showEmail?: boolean;
+	showMemberSince?: boolean;
 };
 
 const UserButton: React.FC<TUserProps> = ({
