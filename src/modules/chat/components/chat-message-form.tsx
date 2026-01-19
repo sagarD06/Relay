@@ -3,6 +3,9 @@ import { Button } from "@/src/components/ui/button";
 import { Textarea } from "@/src/components/ui/textarea";
 import { Send } from "lucide-react";
 import { KeyboardEvent, useEffect, useState } from "react";
+import { useAiModels } from "../../ai-agent/hooks/ai-agent";
+import ModelSelector from "./chat-ai-model-selector";
+import { Spinner } from "@/src/components/ui/spinner";
 
 type ChatMessageFormProps = {
 	initialMessage: string;
@@ -10,6 +13,10 @@ type ChatMessageFormProps = {
 };
 const ChatMessageForm: React.FC<ChatMessageFormProps> = ({ initialMessage, onMessageChange }) => {
 	const [message, setMessage] = useState(initialMessage);
+
+	const { data: models, isPending } = useAiModels();
+
+	const [selectedModel, setSelectedModel] = useState(models?.models[0].id);
 
 	useEffect(() => {
 		if (initialMessage) {
@@ -48,7 +55,20 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({ initialMessage, onMes
 					/>
 					<div className='flex items-center justify-between gap-2 px-3 py-2 border-t'>
 						<div className='flex items-center gap-1'>
-							<Button variant={"outline"}>Select a model</Button>
+							{isPending ? (
+								<>
+									<Spinner />
+								</>
+							) : (
+								<>
+									<ModelSelector
+										models={models?.models}
+										selectedModelId={selectedModel}
+										onModelSelect={setSelectedModel}
+										className='ml-1'
+									/>
+								</>
+							)}
 						</div>
 						<Button
 							type='submit'
