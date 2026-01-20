@@ -6,6 +6,8 @@ import { KeyboardEvent, useEffect, useState } from "react";
 import { useAiModels } from "../../ai-agent/hooks/ai-agent";
 import ModelSelector from "./chat-ai-model-selector";
 import { Spinner } from "@/src/components/ui/spinner";
+import { useCreateChat } from "../hooks/chat";
+import { toast } from "sonner";
 
 type ChatMessageFormProps = {
 	initialMessage: string;
@@ -18,8 +20,11 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({ initialMessage, onMes
 
 	const [selectedModel, setSelectedModel] = useState(models?.models[0].id);
 
+	const { mutateAsync, isPending: isChatPending } = useCreateChat();
+
 	useEffect(() => {
 		if (initialMessage) {
+			setMessage(initialMessage);
 			onMessageChange?.("");
 		}
 	}, [initialMessage, onMessageChange]);
@@ -31,9 +36,13 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({ initialMessage, onMes
 			if ("preventDefault" in e) {
 				e.preventDefault();
 			}
-			console.log("Message sent");
+			await mutateAsync({ content: message, model: selectedModel });
+			toast.success("Message sent successfully");
 		} catch (error) {
 			console.log(error);
+			toast.error("Unable to send the message.");
+		} finally {
+			setMessage("");
 		}
 	};
 
@@ -73,12 +82,20 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({ initialMessage, onMes
 						<Button
 							type='submit'
 							size={"sm"}
-							disabled={!message.trim()}
+							disabled={!message.trim() || isChatPending}
 							variant={message.trim() ? "default" : "ghost"}
 							className='h-8 w-8 rounded-full p-0'
 						>
-							<Send className='h-4 w-4' />
-							<span className='sr-only'>Send the message</span>
+							{isChatPending ? (
+								<>
+									<Spinner />
+								</>
+							) : (
+								<>
+									<Send className='h-4 w-4' />
+									<span className='sr-only'>Send the message</span>
+								</>
+							)}
 						</Button>
 					</div>
 				</div>
