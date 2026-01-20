@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+
 export type User = {
 	id: string;
 	email: string;
@@ -31,3 +33,5 @@ export type Model = {
 		is_moderated: boolean;
 	};
 };
+
+export type ChatwithMessages = Prisma.ChatGetPayload<{ include: { messages: true } }>;

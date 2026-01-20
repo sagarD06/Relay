@@ -56,3 +56,77 @@ export const createChatWithMessage = async (values: { content: string; model: st
 		};
 	}
 };
+
+//Action to fetch all chats for the user
+export const getAllChatsForUser = async () => {
+	try {
+		const user = await currentUser();
+		if (!user) {
+			return {
+				success: false,
+				message: "Unauthorized user!",
+			};
+		}
+
+		const chats = await prisma.chat.findMany({
+			where: {
+				userId: user?.id,
+			},
+			include: {
+				messages: true,
+			},
+			orderBy: {
+				createdAt: "desc",
+			},
+		});
+
+		return {
+			success: true,
+			data: chats,
+			message: "Chats fetched successfully",
+		};
+	} catch (error) {
+		console.error(error);
+		return {
+			success: true,
+			message: "Something went wrong while fetching chats.",
+		};
+	}
+};
+
+export const deleteChat = async (chatId: string) => {
+	try {
+		const user = await currentUser();
+		if (!user) {
+			return {
+				success: false,
+				message: "Unauthorized user!",
+			};
+		}
+		const chat = await prisma.chat.findUnique({
+			where: { id: chatId, userId: user.id },
+		});
+
+		if (!chat) {
+			return {
+				success: false,
+				message: "No chat found!",
+			};
+		}
+		await prisma.chat.delete({
+			where: { id: chatId },
+		});
+
+		revalidatePath("/");
+		return {
+			success: true,
+			message: "Chat deleted successfully",
+		};
+	} catch (error) {
+		console.error(error);
+		return {
+			success: true,
+			message: "Something went wrong while fetching chats.",
+		};
+	}
+};

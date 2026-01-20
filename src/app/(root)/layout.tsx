@@ -1,5 +1,6 @@
 import { auth } from "@/src/lib/auth";
 import { currentUser } from "@/src/modules/authentication/actions";
+import { getAllChatsForUser } from "@/src/modules/chat/actions";
 import ChatSidebar from "@/src/modules/chat/components/chat-sidebar";
 import Header from "@/src/modules/chat/components/header";
 import { User } from "@/src/types";
@@ -17,9 +18,11 @@ const layout = async ({ children }: { children: ReactNode }) => {
 	}
 
 	const user = (await currentUser()) as User;
+	const {data: chats } = await getAllChatsForUser();
+
 	return (
 		<div className='flex h-screen overflow-hidden'>
-			<ChatSidebar user={user} />
+			<ChatSidebar user={user} chats={chats} />
 			<main className='flex-1 overflow-hidden'>
 				<Header />
 				{children}
