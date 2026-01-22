@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import type { Message } from "@prisma/client";
 
 export type User = {
 	id: string;
@@ -35,3 +36,4 @@ export type Model = {
 };
 
 export type ChatwithMessages = Prisma.ChatGetPayload<{ include: { messages: true } }>;
+export type Messages = Message

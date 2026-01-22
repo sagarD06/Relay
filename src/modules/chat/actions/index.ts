@@ -6,14 +6,15 @@ import { revalidatePath } from "next/cache";
 
 //Action to initialize new chat with first message
 export const createChatWithMessage = async (values: { content: string; model: string }) => {
+	const user = await currentUser();
+	if (!user) {
+		return {
+			success: false,
+			message: "Unauthorized user!",
+		};
+	}
+
 	try {
-		const user = await currentUser();
-		if (!user) {
-			return {
-				success: false,
-				message: "Unauthorized user!",
-			};
-		}
 		const { content, model } = values;
 		if (!content || content.length === 0) {
 			return {
@@ -59,15 +60,15 @@ export const createChatWithMessage = async (values: { content: string; model: st
 
 //Action to fetch all chats for the user
 export const getAllChatsForUser = async () => {
-	try {
-		const user = await currentUser();
-		if (!user) {
-			return {
-				success: false,
-				message: "Unauthorized user!",
-			};
-		}
+	const user = await currentUser();
+	if (!user) {
+		return {
+			success: false,
+			message: "Unauthorized user!",
+		};
+	}
 
+	try {
 		const chats = await prisma.chat.findMany({
 			where: {
 				userId: user?.id,
@@ -94,15 +95,49 @@ export const getAllChatsForUser = async () => {
 	}
 };
 
-export const deleteChat = async (chatId: string) => {
+//Action tofetch chat by Id
+export const getChatById = async (chatId: string) => {
+	const user = await currentUser()
+	if (!user) {
+		return {
+			success: false,
+			message: "Unauthorized user!",
+		};
+	}
+
 	try {
-		const user = await currentUser();
-		if (!user) {
-			return {
-				success: false,
-				message: "Unauthorized user!",
-			};
-		}
+		const chat = await prisma.chat.findUnique({
+			where: { id: chatId, userId: user.id },
+			include: { messages: true }
+		})
+
+		return {
+			success: true,
+			data: chat,
+			message: "Chat fetched successfully",
+		};
+
+
+	} catch (error) {
+		console.error(error);
+		return {
+			success: true,
+			message: "Something went wrong while fetching chat by ID.",
+		};
+	}
+};
+
+//Action to delete chat by user
+export const deleteChat = async (chatId: string) => {
+	const user = await currentUser();
+	if (!user) {
+		return {
+			success: false,
+			message: "Unauthorized user!",
+		};
+	}
+
+	try {
 		const chat = await prisma.chat.findUnique({
 			where: { id: chatId, userId: user.id },
 		});
