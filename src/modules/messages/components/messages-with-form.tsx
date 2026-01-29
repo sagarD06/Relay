@@ -1,5 +1,5 @@
 "use client";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useAiModels } from "../../ai-agent/hooks/ai-agent";
 import { useGetChatById } from "../../chat/hooks/chat";
 import { useChatStore } from "../../chat/store/chat-store";
@@ -13,14 +13,20 @@ import { DefaultChatTransport, UIMessage } from "ai";
 import { Messages } from "@/src/types";
 import { RotateCcwIcon, StopCircleIcon } from "lucide-react";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/src/components/ai-elements/reasoning";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const MessagesWithForm = ({ chatId }: { chatId: string }) => {
   const { data: models, isPending: isModelLoading } = useAiModels();
   const { data, isPending } = useGetChatById(chatId)
   const { hasChatBeenTriggered, markChatsAsTriggered } = useChatStore();
 
-  const [selectedModel, setSelectedModel] = useState(data?.data?.model);
   const [input, setInput] = useState("");
+
+  const [selectedModel, setSelectedModel] = useState<string | undefined>(() => data?.data?.model);
+  const hasAutotriggered = useRef(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const shouldAutoTrigger = searchParams.get("autoTrigger") === "true";
 
   const initialMessages = useMemo(() => {
     if (!data?.data?.messages) {
@@ -53,6 +59,30 @@ const MessagesWithForm = ({ chatId }: { chatId: string }) => {
 
   const { stop, messages, status, sendMessage, regenerate } = useChat({ transport: new DefaultChatTransport({ api: "/api/chat" }) })
 
+  useEffect(() => {
+    if (data?.data?.model && !selectedModel) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedModel(data.data.model)
+    }
+  }, [data, selectedModel])
+
+  useEffect(() => {
+    if (hasAutotriggered.current) return;
+    if (!shouldAutoTrigger) return;
+    if (hasChatBeenTriggered(chatId)) return;
+    if (!selectedModel) return;
+    if (initialMessages.length === 0) return;
+
+    const lastMessage = initialMessages[initialMessages.length - 1]
+    if (lastMessage.role !== "user") return;
+
+    hasAutotriggered.current = true;
+    markChatsAsTriggered(chatId)
+    sendMessage({ text: "" }, { body: { model: selectedModel, chatId } })
+
+    router.replace(`/chat/${chatId}`, { scroll: false })
+  }, [shouldAutoTrigger, router, chatId, selectedModel, hasChatBeenTriggered, initialMessages, markChatsAsTriggered, sendMessage])
+
   if (isPending) {
     return <div className="flex h-full items-center justify-center">
       <Spinner />
@@ -61,7 +91,7 @@ const MessagesWithForm = ({ chatId }: { chatId: string }) => {
 
   const handleSubmit = () => {
     if (!input.trim()) return;
-    sendMessage({ text: input }, { body: { model: selectedModel, chatId } })
+    sendMessage({ text: input }, { body: { model: selectedModel, chatId, skipUserMessage: true } })
     setInput("")
   }
 
@@ -106,8 +136,8 @@ const MessagesWithForm = ({ chatId }: { chatId: string }) => {
                             return (
                               <Reasoning className="max-w-2xl px-4 py-4 border border-muted bg-muted/50 rounded-md" key={`${message.id}-${i}`}>
                                 <ReasoningTrigger />
-                                <ReasoningContent 
-                                className="mt-2 font-light italic text-muted-foreground">
+                                <ReasoningContent
+                                  className="mt-2 font-light italic text-muted-foreground">
                                   {part.text}
                                 </ReasoningContent>
                               </Reasoning>
